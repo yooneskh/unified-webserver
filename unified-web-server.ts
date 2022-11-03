@@ -45,7 +45,7 @@ export class UnifiedWebServer extends UnifiedRouter {
         let requestBody: any;
         const requestHeaders = Object.fromEntries(request.headers.entries());
 
-        if (requestHeaders['content-type'].includes('multipart/form-data')) {
+        if (requestHeaders['content-type']?.includes('multipart/form-data')) {
           try {
             requestBody = await request.formData();
           }
@@ -55,7 +55,7 @@ export class UnifiedWebServer extends UnifiedRouter {
             });
           }
         }
-        else if (requestHeaders['content-type'].includes('application/x-www-form-urlencoded')) {
+        else if (requestHeaders['content-type']?.includes('application/x-www-form-urlencoded')) {
           try {
             requestBody = Object.fromEntries( (await request.formData()).entries() );
           }
@@ -69,7 +69,7 @@ export class UnifiedWebServer extends UnifiedRouter {
 
           requestBody = await request.text();
 
-          if (requestHeaders['content-type'].includes('application/json')) {
+          if (requestHeaders['content-type']?.includes('application/json')) {
             try {
               requestBody = JSON.parse(requestBody);
             }
