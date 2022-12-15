@@ -91,7 +91,18 @@ export class UnifiedWebServer extends UnifiedRouter {
         };
 
 
-        return await targetAction.handler(request, requestContext);
+        const response = await targetAction.handler(request, requestContext);
+
+
+        if (response instanceof Response) {
+          return response;
+        }
+
+        if (typeof response === 'object' || typeof response === 'undefined') {
+          return Response.json(response);
+        }
+
+        return new Response(String(response));
 
       },
       {

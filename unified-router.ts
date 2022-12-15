@@ -1,4 +1,4 @@
-import { IMethodRoute, IRoute } from './unified-router.d.ts';
+import { IRoute } from './unified-router.d.ts';
 import { joinPaths } from './util.ts';
 
 
@@ -25,7 +25,7 @@ export class UnifiedRouter {
   route({ method, path, handler }: IRoute) {
 
     if (this.isCompiled) {
-      throw new Error('router is alredy compiled.');
+      throw new Error('router is already compiled.');
     }
 
 
@@ -37,59 +37,11 @@ export class UnifiedRouter {
 
   }
 
-  get({ path, handler }: IMethodRoute) {
-    this.route({
-      method: 'get',
-      path,
-      handler,
-    });
-  }
-
-  post({ path, handler }: IMethodRoute) {
-    this.route({
-      method: 'post',
-      path,
-      handler,
-    });
-  }
-
-  put({ path, handler }: IMethodRoute) {
-    this.route({
-      method: 'put',
-      path,
-      handler,
-    });
-  }
-
-  patch({ path, handler }: IMethodRoute) {
-    this.route({
-      method: 'patch',
-      path,
-      handler,
-    });
-  }
-
-  delete({ path, handler }: IMethodRoute) {
-    this.route({
-      method: 'delete',
-      path,
-      handler,
-    });
-  }
-
-  head({ path, handler }: IMethodRoute) {
-    this.route({
-      method: 'head',
-      path,
-      handler,
-    });
-  }
-
 
   use(basePath: string, router: UnifiedRouter) {
 
     if (this.isCompiled) {
-      throw new Error('router is alredy compiled.');
+      throw new Error('router is already compiled.');
     }
 
 
