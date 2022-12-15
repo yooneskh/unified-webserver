@@ -10,7 +10,9 @@ export class UnifiedWebServer extends UnifiedRouter {
   }
 
 
-  listen({ port, hostname }: { port?: number, hostname?: string }) {
+  listen(context: { port?: number, hostname?: string, onListen: () => void }) {
+
+    const { port, hostname, onListen } = context;
 
     const routes = this.compile();
 
@@ -108,6 +110,7 @@ export class UnifiedWebServer extends UnifiedRouter {
       {
         port,
         hostname,
+        onListen,
       },
     )
 
