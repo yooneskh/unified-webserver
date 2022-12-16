@@ -2,7 +2,7 @@
 
 export type {
   IRoute,
-  IMethodRoute,
+  IRouteHandlerReturn,
 } from './unified-router.d.ts'
 
 export {
