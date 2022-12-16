@@ -100,7 +100,7 @@ export class UnifiedWebServer extends UnifiedRouter {
           return response;
         }
 
-        if (typeof response === 'object' || typeof response === 'undefined') {
+        if (typeof response === 'object' || typeof response === 'undefined' || typeof response === 'boolean') {
           return Response.json(response);
         }
 

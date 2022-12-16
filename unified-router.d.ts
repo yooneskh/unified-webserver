@@ -1,7 +1,7 @@
 import { IRequestContext } from './unified-web-server.d.ts';
 
 
-export type IRouteHandlerReturn = Response | Record<string, unknown> | unknown[] | string | number | undefined;
+export type IRouteHandlerReturn = Response | Record<string, unknown> | unknown[] | string | number | boolean | undefined;
 
 export interface IRoute {
   method: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
