@@ -1,3 +1,4 @@
+import { IRouteHandlerReturn } from './unified-router.d.ts';
 
 
 export interface IRequestContext {
@@ -7,3 +8,7 @@ export interface IRequestContext {
   // deno-lint-ignore no-explicit-any
   body: any;
 }
+
+export type TUnifiedWebServerErrorHandler = (
+  (error?: unknown) => IRouteHandlerReturn
+);

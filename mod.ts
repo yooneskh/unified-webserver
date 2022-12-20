@@ -11,6 +11,7 @@ export {
 
 export type {
   IRequestContext,
+  TUnifiedWebServerErrorHandler,
 } from './unified-web-server.d.ts';
 
 export {

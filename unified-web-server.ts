@@ -1,12 +1,19 @@
 import { UnifiedRouter } from './unified-router.ts';
 import { IRoute } from './unified-router.d.ts';
-import { IRequestContext } from './unified-web-server.d.ts';
+import { IRequestContext, TUnifiedWebServerErrorHandler } from './unified-web-server.d.ts';
 
 
 export class UnifiedWebServer extends UnifiedRouter {
 
+  private errorHandler?: TUnifiedWebServerErrorHandler;
+
   constructor() {
     super();
+  }
+
+
+  public setErrorHandler(errorHandler: TUnifiedWebServerErrorHandler) {
+    this.errorHandler = errorHandler;
   }
 
 
@@ -93,7 +100,20 @@ export class UnifiedWebServer extends UnifiedRouter {
         };
 
 
-        const response = await targetAction.handler(request, requestContext);
+        let response;
+
+        try {
+          response = await targetAction.handler(request, requestContext);
+        }
+        catch (error) {
+
+          if (!this.errorHandler) {
+            throw error;
+          }
+
+          response = await this.errorHandler(error);
+
+        }
 
 
         if (response instanceof Response) {
