@@ -17,9 +17,9 @@ export class UnifiedWebServer extends UnifiedRouter {
   }
 
 
-  listen(context: { port?: number, hostname?: string, onListen: () => void, onError?: (error: unknown) => Response | Promise<Response>, }) {
+  async listen(context: { port?: number, hostname?: string, signal?: AbortSignal, onListen?: () => void, onError?: (error: unknown) => Response | Promise<Response>, }) {
 
-    const { port, hostname, onListen, onError } = context;
+    const { port, hostname, signal, onListen, onError } = context;
 
     const routes = this.compile();
 
@@ -29,123 +29,129 @@ export class UnifiedWebServer extends UnifiedRouter {
     }));
 
 
-    Deno.serve(
-      async request => {
-        try {
+    const requestHandler = async (request: Request) => {
+      try {
 
-          const targetAction = patternedRoutes.find(it => it.method === request.method.toLowerCase() && it.pattern!.test(request.url));
+        const targetAction = patternedRoutes.find(it => it.method === request.method.toLowerCase() && it.pattern!.test(request.url));
 
-          if (!targetAction) {
-            return new Response(`${request.method} ${new URL(request.url).pathname} not found.`, {
-              status: 404,
-            });
+        if (!targetAction) {
+          return new Response(`${request.method} ${new URL(request.url).pathname} not found.`, {
+            status: 404,
+          });
+        }
+
+
+        const patternResult = targetAction.pattern.exec(request.url);
+
+        if (!patternResult) {
+          return new Response(`could not process ${request.method} ${new URL(request.url).pathname} url.`, {
+            status: 400,
+          });
+        }
+
+
+        // deno-lint-ignore no-explicit-any
+        let requestBody: any;
+        const requestHeaders = Object.fromEntries(request.headers.entries());
+
+        if (requestHeaders['content-type']?.includes('multipart/form-data')) {
+          try {
+            requestBody = await request.formData();
           }
-
-
-          const patternResult = targetAction.pattern.exec(request.url);
-
-          if (!patternResult) {
-            return new Response(`could not process ${request.method} ${new URL(request.url).pathname} url.`, {
+          catch {
+            return new Response(`could not parse request body as multipart form data`, {
               status: 400,
             });
           }
-
-
-          // deno-lint-ignore no-explicit-any
-          let requestBody: any;
-          const requestHeaders = Object.fromEntries(request.headers.entries());
-
-          if (requestHeaders['content-type']?.includes('multipart/form-data')) {
-            try {
-              requestBody = await request.formData();
-            }
-            catch {
-              return new Response(`could not parse request body as multipart form data`, {
-                status: 400,
-              });
-            }
-          }
-          else if (requestHeaders['content-type']?.includes('application/x-www-form-urlencoded')) {
-            try {
-              requestBody = Object.fromEntries( (await request.formData()).entries() );
-            }
-            catch {
-              return new Response(`could not parse request body as url encoded form data`, {
-                status: 400,
-              });
-            }
-          }
-          else {
-
-            requestBody = await request.text();
-
-            if (requestHeaders['content-type']?.includes('application/json')) {
-              try {
-                requestBody = JSON.parse(requestBody);
-              }
-              catch {
-                return new Response(`request indicated that content type is json but could not parse body as a json`, {
-                  status: 400,
-                });
-              }
-            }
-
-          }
-
-
-          const requestContext: IRequestContext = {
-            params: patternResult.pathname.groups,
-            headers: requestHeaders,
-            queries: Object.fromEntries(new URL(request.url).searchParams.entries()),
-            body: requestBody,
-          };
-
-
-          let response;
-
+        }
+        else if (requestHeaders['content-type']?.includes('application/x-www-form-urlencoded')) {
           try {
-            response = await targetAction.handler(request, requestContext);
+            requestBody = Object.fromEntries( (await request.formData()).entries() );
           }
-          catch (error) {
+          catch {
+            return new Response(`could not parse request body as url encoded form data`, {
+              status: 400,
+            });
+          }
+        }
+        else {
 
-            if (!this.errorHandler) {
-              throw error;
+          requestBody = await request.text();
+
+          if (requestHeaders['content-type']?.includes('application/json')) {
+            try {
+              requestBody = JSON.parse(requestBody);
             }
-
-            response = await this.errorHandler(error);
-
+            catch {
+              return new Response(`request indicated that content type is json but could not parse body as a json`, {
+                status: 400,
+              });
+            }
           }
 
+        }
 
-          if (response instanceof Response) {
-            return response;
-          }
 
-          if (typeof response === 'object' || typeof response === 'undefined' || typeof response === 'boolean') {
-            return Response.json(response);
-          }
+        const requestContext: IRequestContext = {
+          params: patternResult.pathname.groups,
+          headers: requestHeaders,
+          queries: Object.fromEntries(new URL(request.url).searchParams.entries()),
+          body: requestBody,
+        };
 
-          return new Response(String(response));
 
+        let response;
+
+        try {
+          response = await targetAction.handler(request, requestContext);
         }
         catch (error) {
 
-          console.error('could not process request', request);
-          console.error(error);
+          if (!this.errorHandler) {
+            throw error;
+          }
 
-          return new Response('Could not process request', {
-            status: 500,
-          });
+          response = await this.errorHandler(error);
 
         }
-      },
+
+
+        if (response instanceof Response) {
+          return response;
+        }
+
+        if (typeof response === 'object' || typeof response === 'undefined' || typeof response === 'boolean') {
+          return Response.json(response);
+        }
+
+        return new Response(String(response));
+
+      }
+      catch (error) {
+
+        console.error('could not process request', request);
+        console.error(error);
+
+        return new Response('Could not process request', {
+          status: 500,
+        });
+
+      }
+    };
+
+    const serveRef = Deno.serve(
       {
         port,
         hostname,
+        signal,
         onListen,
         onError,
       },
-    )
+      requestHandler,
+    );
+
+
+    await serveRef.finished;
 
   }
 
